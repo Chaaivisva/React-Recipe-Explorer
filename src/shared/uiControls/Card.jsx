@@ -8,9 +8,11 @@ function Card({
     title,
     children,
     actions,
+    onClick,
 }){
     return (
         <MuiCard
+        onClick={onClick}
           sx={{
             maxWidth: 400,
             margin: '50px auto',

@@ -13,44 +13,45 @@ export const getRecipeById = createAsyncThunk('recipes/fetchRecipeById', async (
     return response.data;
 });
 
+const storedItems = JSON.parse(localStorage.getItem("recipes")) || [];
+
 const recipeSlice = createSlice({
-    name: 'recipes',
-    initialState: {
-        items: [],
-        reactions: storedReactions,
-        status: 'idle'
+  name: "recipes",
+  initialState: {
+    items: storedItems,
+    status: "idle"
+  },
+
+  reducers: {
+    likeRecipe: (state, action) => {
+      const recipe = state.items.find(r => r.id === action.payload);
+      if (!recipe) return;
+
+      recipe.likes = (recipe.likes || 0) + 1;
+      recipe.reaction = "like";
+
+      localStorage.setItem("recipes", JSON.stringify(state.items));
     },
 
-    reducers: {
-       likeRecipe: (state, action) => {
-            const recipe = state.items.find(r => r.id === action.payload);
-            if (!recipe) return;
+    dislikeRecipe: (state, action) => {
+      const recipe = state.items.find(r => r.id === action.payload);
+      if (!recipe) return;
 
-            recipe.likes += 1;
-            recipe.reaction = "liked";
+      recipe.dislikes = (recipe.dislikes || 0) + 1;
+      recipe.reaction = "dislike";
 
-            localStorage.setItem("recipes", JSON.stringify(state.items));
-        },
+      localStorage.setItem("recipes", JSON.stringify(state.items));
+    }
+  },
 
-        dislikeRecipe: (state, action) => {
-            const recipe = state.items.find(r => r.id === action.payload);
-            if (!recipe || recipe.likes === 0) return;
-
-            recipe.dislikes += 1;
-            recipe.reaction = "disliked";
-
-            localStorage.setItem("recipes", JSON.stringify(state.items));
-        }
-    },
-
-    extraReducers: (builder) => {
+  extraReducers: (builder) => {
     builder
       .addCase(getRecipes.pending, (state) => {
-        state.status = 'loading';
+        state.status = "loading";
       })
 
       .addCase(getRecipes.fulfilled, (state, action) => {
-        state.status = 'succeeded';
+        state.status = "succeeded";
 
         state.items = action.payload.map(recipe => {
           const existing = state.items.find(r => r.id === recipe.id);
@@ -66,19 +67,18 @@ const recipeSlice = createSlice({
         localStorage.setItem("recipes", JSON.stringify(state.items));
       })
 
-      .addCase(getRecipes.rejected, (state) => {
-        state.status = 'failed';
-      })
-
       .addCase(getRecipeById.fulfilled, (state, action) => {
-        const index = state.items.findIndex(r => r.id === action.payload.id);
-        if (index !== -1) {
-          state.items[index] = {
+        const existing = state.items.find(r => r.id === action.payload.id);
+
+        if (existing) {
+          Object.assign(existing, action.payload);
+        } else {
+          state.items.push({
             ...action.payload,
-            likes: state.items[index].likes,
-            dislikes: state.items[index].dislikes,
-            reaction: state.items[index].reaction
-          };
+            likes: 0,
+            dislikes: 0,
+            reaction: null
+          });
         }
       });
   }
